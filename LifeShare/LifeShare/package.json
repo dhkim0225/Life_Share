@@ -1,0 +1,10 @@
+{
+  "name": "life-share",
+  "version": "0.0.0",
+  "description": "LifeShare",
+  "main": "server.js",
+  "author": {
+    "name": "artit",
+    "email": "artit.anthony@gmail.com"
+  }
+}
