@@ -32,6 +32,7 @@
   <ItemGroup>
     <Compile Include="credentials.js" />
     <Compile Include="server.js" />
+    <Compile Include="server_cluster.js" />
     <Content Include="package.json" />
     <Content Include="README.md" />
   </ItemGroup>

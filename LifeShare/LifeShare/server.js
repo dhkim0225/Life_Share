@@ -9,11 +9,48 @@ app.set('port', process.env.PORT || 62424);
 
 // app.set('env', 'production');
 
+app.use(function (req, res, next) {
+    var domain = require('domain').create();
+    domain.on('error', function (err) {
+        console.error('DOMAIN ERROR CAUGHT\n', err.stack);
+        try {
+            // 5초 후 shutdown
+            setTimeout(function () {
+                console.error('Failsafe shutdown.');
+                process.exit(1);
+            }, 5000);
+            
+            // 클러스터 연결 해제
+            var worker = require('cluster').worker;
+            if (worker) worker.disconnect();
+            
+            // req를 그만 받음
+            server.close();
+            
+            try {
+                next(err);
+            } catch (error) {
+                console.error('Express error mechanism failed.\n', error.stack);
+                res.statusCode = 500;
+                res.setHeader('content-type', 'text/plain');
+                res.end('Server error.');
+            }
+        } catch (error) {
+            console.error('Unable to send 500 response.\n', error.stack);
+        }
+    });
+
+    domain.add(req);
+    domain.add(res);
+
+    domain.run(next);
+});
 // static - public 폴더
 app.use(express.static(__dirname + '/public'));
 
-// csurf 공격 방어
+/* csurf 공격 방어
 app.use(require('csurf')());
+*/
 
 // logging 기능 추가
 switch (app.get('env')) {
@@ -70,8 +107,16 @@ app.use(function (err, req, res, next) {
     res.send('500 Server Error');
 });
 
-app.listen(app.get('port'), function () {
-    console.log('Express started in ' + app.get('env') +
+
+function startServer() {
+    app.listen(app.get('port'), function () {
+        console.log('Express started in ' + app.get('env') +
         ' mode on http://localhost:' + 
         app.get('port') + '; press Ctrl-C to terminate.');
-});
+    });
+}
+if (require.main === module) {
+    startServer();
+} else {
+    module.exports = startServer;
+}
