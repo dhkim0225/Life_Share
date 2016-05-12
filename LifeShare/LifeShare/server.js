@@ -63,6 +63,23 @@ switch (app.get('env')) {
         }));
 }
 
+var Client = require('mariasql');
+
+var c = new Client({
+    host: credentials.dbAuth.host,
+    user: credentials.dbAuth.user,
+    password: credentials.dbAuth.password
+});
+
+c.query('SHOW DATABASES', function (err, rows) {
+    if (err)
+        throw err;
+    console.dir(rows);
+});
+
+c.end();
+
+
 // json, urlencoded 제공하는 미들웨어
 app.use(require('body-parser').urlencoded({ extended : true }));
 
