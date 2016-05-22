@@ -39,10 +39,10 @@ app.use(function (req, res, next) {
             console.error('Unable to send 500 response.\n', error.stack);
         }
     });
-
+    
     domain.add(req);
     domain.add(res);
-
+    
     domain.run(next);
 });
 // static - public 폴더
@@ -58,8 +58,8 @@ switch (app.get('env')) {
         app.use(require('morgan')('dev'));
         break;
     case 'production':
-        app.use(require('express-logger') ({
-            path:__dirname + '/log/requests.log'
+        app.use(require('express-logger')({
+            path: __dirname + '/log/requests.log'
         }));
 }
 
@@ -86,12 +86,30 @@ app.use(require('body-parser').urlencoded({ extended : true }));
 // 서명된 쿠키 시크릿 사용
 app.use(require('cookie-parser')(credentials.cookieSecret));
 
-// 세션 사용
-app.use(require('express-session')({
+// 세션 사용 - 저장소 : MariaDB
+var session = require('express-session');
+var KnexSessionStore = require('connect-session-knex')(session);
+var knex = require('knex')({
+    client: 'mysql',
+    connection: {
+        host: credentials.dbAuth.host,
+        user: credentials.dbAuth.user,
+        password: credentials.dbAuth.password,
+        database: credentials.dbAuth.db
+    }
+});
+const session_store = new KnexSessionStore({
+    knex: knex,
+    tablename: 'sessions'
+});
+
+app.use(session({
     resave : false,
     saveUninitialized: false,
-    secret : credentials.cookieSecret
+    secret : credentials.cookieSecret,
+    store : session_store
 }));
+
 
 // mocha QA 테스트 코드 - 쿼리스트링 test=1 감지
 app.use(function (req, res, next) {
