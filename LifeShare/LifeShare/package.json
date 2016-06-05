@@ -1,6 +1,6 @@
 {
   "name": "life-share",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "LifeShare",
   "main": "server.js",
   "author": {
@@ -20,7 +20,9 @@
     "mariasql": "^0.2.6",
     "mocha": "^2.4.5",
     "morgan": "^1.7.0",
-    "mysql": "^2.10.2"
+    "mysql": "^2.10.2",
+    "passport": "^0.3.2",
+    "passport-facebook": "^2.1.1"
   },
   "devDependencies": {
     "chai": "^3.5.0",
