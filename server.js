@@ -1,8 +1,9 @@
 ﻿var express = require('express');
 var app = express();
 var connect = require('connect');
+var path    = require("path");
 
-var credentials = require('./credentials.js');
+var credentials = require('../../credentials.js');
 
 
 app.set('port', process.env.PORT || 62424);
@@ -75,28 +76,18 @@ app.use(require('body-parser').urlencoded({ extended : true }));
 // 서명된 쿠키 시크릿 사용
 app.use(require('cookie-parser')(credentials.cookieSecret));
 
-// 세션 사용 - 저장소 : MariaDB
-var session = require('express-session');
-var KnexSessionStore = require('connect-session-knex')(session);
-var knex = require('knex')({
-    client: 'mysql',
-    connection: {
-        host: credentials.dbAuth.host,
-        user: credentials.dbAuth.user,
-        password: credentials.dbAuth.password,
-        database: credentials.dbAuth.db
-    }
-});
-const session_store = new KnexSessionStore({
-    knex: knex,
-    tablename: 'sessions'
+// 세션 사용 - 저장소 : MongoDB
+const session = require('express-session');
+const MongoStore = require('connect-mongo')(session);
+var sessionStore = new MongoStore({
+    url:credentials.mongo[app.get('env')].sessionString
 });
 
 app.use(session({
     resave : false,
     saveUninitialized: false,
     secret : credentials.cookieSecret,
-    store : session_store
+    store : sessionStore
 }));
 
 
@@ -108,15 +99,23 @@ app.use(function (req, res, next) {
 });
 
 
-
-// MariaDB 연동
-var Client = require('mariasql');
-
-var c = new Client({
-    host: credentials.dbAuth.host,
-    user: credentials.dbAuth.user,
-    password: credentials.dbAuth.password
-});
+// DB 연동 - mongoose 모듈 사용(mongoDB)
+var mongoose = require('mongoose');
+var options = {
+    server: {
+       socketOptions: { keepAlive: 1 } 
+    }
+};
+switch(app.get('env')){
+    case 'development':
+        mongoose.connect(credentials.mongo.development.userString, options);
+        break;
+    case 'production':
+        mongoose.connect(credentials.mongo.production.userString, options);
+        break;
+    default:
+        throw new Error('Unknown execution environment: ' + app.get('env'));
+}
 
 
 // 인증
@@ -126,38 +125,39 @@ var auth = require('./lib/auth.js')(app, {
     baseUrl: process.env.BASE_URL,
     providers: credentials.authProviders,
     successRedirect: '/account',
-    failureRedirect: '/unauthorized',
-    maria_connect: c
+    failureRedirect: '/unauthorized'
 });
 auth.init();
 auth.registerRoutes();
 
 
-c.end();
 
-/*
-// 승인
+// 고객 사용 가능 페이지
+// >> 라우팅 시 app.get('/account',customerOnly,function ... ) 식으로 사용
 function customerOnly(req, res, next) {
     if (req.user && req.user.role === 'customer') return next();
-    // we want customer-only pages to know they need to logon
     res.redirect(303, '/unauthorized');
 }
+
+// 직원 사용 가능 페이지
 function employeeOnly(req, res, next) {
     if (req.user && req.user.role === 'employee') return next();
-    // we want employee-only authorization failures to be "hidden", to
-    // prevent potential hackers from even knowhing that such a page exists
     next('route');
 }
+
+// 여러 역할 사용 가능 페이지
 function allow(roles) {
     return function (req, res, next) {
         if (req.user && roles.split(',').indexOf(req.user.role) !== -1) return next();
         res.redirect(303, '/unauthorized');
     };
 }
+
+// unauthorized 라우팅
 app.get('/unauthorized', function (req, res) {
     res.status(403).render('unauthorized');
 });
-*/
+
 
 
 

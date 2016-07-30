@@ -10,19 +10,19 @@
   "dependencies": {
     "body-parser": "^1.15.1",
     "connect": "^3.4.1",
-    "connect-session-knex": "^1.0.23",
+    "connect-mongo": "^1.3.1",
     "cookie-parser": "^1.4.1",
     "csurf": "^1.8.3",
     "express": "^4.13.4",
     "express-logger": "0.0.3",
     "express-session": "^1.13.0",
-    "knex": "^0.11.3",
-    "mariasql": "^0.2.6",
+    "iamporter": "^0.7.24",
     "mocha": "^2.4.5",
+    "mongoose": "^4.5.6",
     "morgan": "^1.7.0",
-    "mysql": "^2.10.2",
     "passport": "^0.3.2",
-    "passport-facebook": "^2.1.1"
+    "passport-facebook": "^2.1.1",
+    "passport-google-oauth": "^1.0.0"
   },
   "devDependencies": {
     "chai": "^3.5.0",
