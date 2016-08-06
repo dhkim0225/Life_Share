@@ -1,6 +1,6 @@
-var mongoose = require('mongoose');
+const mongoose = require('mongoose');
 
-var userSchema = mongoose.Schema({
+const userSchema = mongoose.Schema({
 	authId: String,
 	name: String,
 	email: String,
@@ -8,5 +8,5 @@ var userSchema = mongoose.Schema({
 	created: Date,
 });
 
-var User = mongoose.model('User', userSchema);
+const User = mongoose.model('User', userSchema);
 module.exports = User;

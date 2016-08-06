@@ -1,7 +1,7 @@
-var cluster = require('cluster');
+const cluster = require('cluster');
 
 function startWorker() {
-    var worker = cluster.fork();
+    const worker = cluster.fork();
     console.log('CLUSTER: Worker %d started', worker.id);
 }
 
