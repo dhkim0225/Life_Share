@@ -125,7 +125,6 @@ switch(app.get('env')){
         throw new Error('Unknown execution environment: ' + app.get('env'));
 }
 
-
 // 인증
 app.set('BASE_URL', process.env.BASE_URL || 'localhost:62424');
 
@@ -142,19 +141,19 @@ auth.registerRoutes();
 
 // 고객 사용 가능 페이지
 // >> 라우팅 시 app.get('/account',customerOnly,function ... ) 식으로 사용
-function customerOnly(req, res, next) {
+const customerOnly = (req, res, next) => {
     if (req.user && req.user.role === 'customer') return next();
     res.redirect(303, '/unauthorized');
 }
 
 // 직원 사용 가능 페이지
-function employeeOnly(req, res, next) {
+const employeeOnly = (req, res, next) => {
     if (req.user && req.user.role === 'employee') return next();
     next('route');
 }
 
 // 여러 역할 사용 가능 페이지
-function allow(roles) {
+const allow = (roles) => {
     return function (req, res, next) {
         if (req.user && roles.split(',').indexOf(req.user.role) !== -1) return next();
         res.redirect(303, '/unauthorized');
@@ -166,9 +165,9 @@ app.get('/unauthorized', function (req, res) {
     res.status(403).render('unauthorized');
 });
 
-
-function confirm_login(req,res,user){
-    if(req.session.passport.user){
+// 로그인 확인
+const confirm_login = (req,res,user) => {
+    if(req.session && req.session.passport && req.session.passport.user){
         user.findOne({_id:req.session.passport.user},function(err,data){
             if(err){
                 console.log('login Error occured');
