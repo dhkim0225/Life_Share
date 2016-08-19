@@ -3,6 +3,8 @@ const app = express();
 const connect = require('connect');
 const path    = require("path");
 const request = require('request');
+const EventEmitter = require('events');
+
 const credentials = require('../../credentials.js');
 const user = require('./models/user.js');    // DB 끌어오기
 
@@ -174,11 +176,13 @@ const confirm_login = (req,res,user) => {
             }else{
                 // client에 데이터 담아서 쏴주기
                 console.log('로그인 굿');
+                return true;
             }
         });
     }
     else
         console.log('ㅇㅅㅇ');
+        return false;
 }
 
 
@@ -210,11 +214,13 @@ app.get('/logout', function (req, res) {
 
 // 와우자 연동 테스트
 app.get('/requesting',function(req,res){
-    request.get({
+    
+    request.get({        
         url:'http://localhost:8087/v2/servers/_defaultServer_/vhosts/_defaultVHost_/applications',
         headers:{
-            Accept:'application/json',
-            charset:'utf-8'
+            "Content-Type": "application/json",
+            "Accept":'application/json',
+            "charset":'utf-8'
         }
     },function (error, response, body) {
         if (!error && response.statusCode == 200) {
@@ -229,37 +235,61 @@ app.get('/requesting',function(req,res){
 
 // 와우자 앱 추가테스트
 app.get('/requesting2',function(req,res){
-    request.post({
-        url:'http://localhost:8087/v2/servers/_defaultServer_/vhosts/_defaultVHost_/applications',
-        form:{
-            ApplicationConfig : {
-                restURI: "http://localhost:8087/v2/servers/_defaultServer_/vhosts/_defaultVHost_/applications/testlive",
-                name: "testlive",
+    const myEmitter = new EventEmitter();
+
+    let name;
+    let clientIP;
+    let authID;
+    if(req.session && req.session.passport && req.session.passport.user){
+        user.findOne({_id:req.session.passport.user},function(err,data) {
+            name = data.name;
+            clientIP = data.ip;
+            authID = data.authId;
+
+            myEmitter.emit('login_success');
+            if(err){
+                console.log('login Error occured');
+            }
+        });
+    }else{
+        console.log("you're not logined");
+        res.redirect('/');
+    }
+
+    myEmitter.on('login_success', () =>{ // 로그인 완료 후 앱 생성
+        request.post({
+            url : 'http://localhost:8087/v2/servers/_defaultServer_/vhosts/_defaultVHost_/applications/' + authID + "_vod",
+            headers:{
+                "Content-Type": "application/json",
+                "Accept" : "application/json",
+                "charset" : "utf-8"
+            },
+            json : {
+                name: authID + "_vod",
                 appType: "Live",
                 clientStreamReadAccess: "*",
                 clientStreamWriteAccess: "*",
-                description: "Testing our Rest Service"
-                
-            },
-            securityConfig : {
-                
+                description: "Testing our Rest Service",
+                securityConfig : {
+                    publishIPWhiteList : clientIP,
+                    publishBlockDuplicateStreamNames : true
+                },
+                streamConfig: {
+                    streamType: "live"
+                }
             }
-        },
-        headers:{
-            Accept:'application/json',
-            charset:'utf-8'
         },function (error, response, body) {
             if (!error && response.statusCode == 200) {
                 const info = JSON.parse(body);
                 console.log(info);
             }
             else
-                console.log('error on wowza');
+                console.log(response.statusCode);
         }
-    }).auth(credentials.wowza.userid,credentials.wowza.userpw, false);
-    res.redirect('/');
+        ).auth(credentials.wowza.userid,credentials.wowza.userpw, false);
+        res.redirect('/');
+    });
 });
-
 // 404 오류처리
 app.use(function (req, res, next) {
     res.type('text/plain');
